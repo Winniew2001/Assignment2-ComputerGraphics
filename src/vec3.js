@@ -49,7 +49,7 @@ class Vec3 {
         }
     }
 
-    static random_in_unit_sphere(){
+    static randomInUnitVector(){
         return Vec3.randomInUnitSphere().unitVector();
     }
 

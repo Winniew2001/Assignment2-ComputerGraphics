@@ -4,4 +4,4 @@ class ScatterRecord {
         this.attenuation = attenuation;
         this.isScattered = isScattered;
     }
-};
+}

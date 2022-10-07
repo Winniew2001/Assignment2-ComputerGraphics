@@ -5,17 +5,17 @@ class World{
         this.objects.push(object)
     }
 
-    worldHit(ray, t_min, t_max){
-        let t_rec = new HitRecord()
-        let closest = t_max;
+    worldHit(ray, tMin, tMax){
+        let tempRecord = new HitRecord()
+        let closest = tMax;
 
         for (let i = 0; i < this.objects.length; i++){
-            let object = this.objects[i].hit(ray, t_min, closest);
+            let object = this.objects[i].hit(ray, tMin, closest);
             if (object.hit){
                 closest = object.t;
-                t_rec = object;
+                tempRecord = object;
             }
         }
-        return t_rec;
+        return tempRecord;
     }
 }

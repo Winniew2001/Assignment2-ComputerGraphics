@@ -6,7 +6,8 @@ class Camera {
     origin = new Vec3(0, 0, 0);
     horizontal = new Vec3(this.viewportWidth, 0.0, 0.0);
     vertical = new Vec3(0.0, this.viewportHeight, 0.0);
-    lowerLeftCorner = this.origin.subtract(this.horizontal.multiply(0.5)).subtract(this.vertical.multiply(0.5)).subtract(new Vec3(0, 0, this.focalLength));
+    lowerLeftCorner = this.origin.subtract(this.horizontal.multiply(0.5)).subtract(this.vertical.multiply(0.5))
+        .subtract(new Vec3(0, 0, this.focalLength));
 
     getRay(u, v) {
         let s1 = this.horizontal.multiply(u);

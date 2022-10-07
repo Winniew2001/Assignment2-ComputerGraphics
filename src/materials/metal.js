@@ -8,13 +8,14 @@ class Metal {
         }
     }
 
-    scatter(ray, rec) {
+    scatter(ray, record) {
         let scatterRecord = new ScatterRecord();
-        let reflected = ray.direction.reflect(rec.normal).unitVector();
-        scatterRecord.rayScattered = new Ray(rec.point, reflected.add(Vec3.randomInUnitSphere().multiply(this.fuzz)));
+        let reflected = ray.direction.reflect(record.normal).unitVector();
+        scatterRecord.rayScattered = new Ray(record.point, reflected.add(Vec3.randomInUnitSphere()
+            .multiply(this.fuzz)));
         scatterRecord.attenuation = this.albedo;
 
-        scatterRecord.isScattered = (scatterRecord.rayScattered.direction.dot(rec.normal)) > 0;
+        scatterRecord.isScattered = (scatterRecord.rayScattered.direction.dot(record.normal)) > 0;
         return scatterRecord;
 
     }

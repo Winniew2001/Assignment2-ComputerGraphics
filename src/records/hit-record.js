@@ -8,7 +8,7 @@ class HitRecord {
     }
     
     setFaceNormal(ray, outwardNormal) {
-        let front_face = ray.direction.dot(outwardNormal) < 0;
-        this.normal = front_face ? outwardNormal : outwardNormal.multiply(-1);
+        let frontFace = ray.direction.dot(outwardNormal) < 0;
+        this.normal = frontFace ? outwardNormal : outwardNormal.multiply(-1);
     }
-};
+}

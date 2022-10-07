@@ -1,3 +1,9 @@
+const ASPECT_RATIO = 16.0 / 9.0;
+const IMAGE_WIDTH = 400;
+const IMAGE_HEIGHT = IMAGE_WIDTH / ASPECT_RATIO;
+const SAMPLES_PER_PIXEL = 100;
+const MAX_DEPTH = 50;
+
 //firstImage();
 //blueWhiteGradient();
 //redSphere();
@@ -31,19 +37,13 @@ function firstImage() {
     displayImage(imageWidth, imageHeight, image);
 }
 
-/**
- * Displays an image with blue and white gradient.
- */
 function blueWhiteGradient() {
     function rayToColor(ray){
-        return gradient(ray);
+        return createGradient(ray);
     }
     display(rayToColor);
 }
 
-/**
- * Displays an image with a red sphere on a blue/white gradient.
- */
 function redSphere() {
     function hitSphere(center, radius, ray){
          return getDiscriminant(center, radius, ray)[0] > 0;
@@ -53,14 +53,11 @@ function redSphere() {
         if (hitSphere(new Vec3(0,0,-1), 0.5, ray)){
             return new Vec3(1,0,0);
         }
-        return gradient(ray);
+        return createGradient(ray);
     }
     display(rayToColor);
 }
 
-/**
- * Displays an image with a sphere colored according to its normal vectors and a blue/white gradient.
- */
 function normalsSphere() {
     function hitSphere(center, radius, ray){
         let discriminant = getDiscriminant(center, radius, ray);
@@ -74,12 +71,12 @@ function normalsSphere() {
     function rayToColor(ray){
         let t = hitSphere(new Vec3(0, 0, -1), 0.5, ray);
         if (t > 0.0){
-            let N = (ray.at(t).subtract(new Vec3(0,0,-1))).unitVector();
-            let n_color = new Vec3(N.x + 1, N.y + 1, N.z + 1);
-            return n_color.multiply(0.5);
+            let normal = (ray.at(t).subtract(new Vec3(0,0,-1))).unitVector();
+            let normalColor = new Vec3(normal.x + 1, normal.y + 1, normal.z + 1);
+            return normalColor.multiply(0.5);
         }
-        let unit_direction = ray.direction.unitVector();
-        t = 0.5*(unit_direction.y + 1.0);
+        let unitDirection = ray.direction.unitVector();
+        t = 0.5*(unitDirection.y + 1.0);
         let color = new Vec3(1.0, 1.0, 1.0);
         let color2 = new Vec3(0.5, 0.7, 1.0);
         let gradient = color.multiply(1.0-t).add(color2.multiply(t));
@@ -88,73 +85,63 @@ function normalsSphere() {
     display(rayToColor);
 }
 
-/**
- * Displays an image with the normalSphere and grass ground.
- */
 function sphereAndGround() {
     function rayToColor(ray, world){
-        let rec = world.worldHit(ray, 0, Infinity);
-        if (rec.hit){
-            return rec.normal.add(new Vec3(1,1,1).multiply(0.5));
+        let record = world.worldHit(ray, 0, Infinity);
+        if (record.hit){
+            return record.normal.add(new Vec3(1,1,1).multiply(0.5));
         }
-        return gradient(ray);
+        return createGradient(ray);
     }
     displayWorld(rayToColor);
 }
 
-/**
- * Displays previous image but smoother.
- */
 function antialiasing() {
     function rayToColor(ray, world){
-        let rec = world.worldHit(ray, 0, Infinity);
-        if (rec.hit){
-            return rec.normal.add(new Vec3(1,1,1).multiply(0.5));
+        let record = world.worldHit(ray, 0, Infinity);
+        if (record.hit){
+            return record.normal.add(new Vec3(1,1,1).multiply(0.5));
         }
-        return gradient(ray);
+        return createGradient(ray);
     }
     displayWorldAntialiasing(rayToColor);
 }
 
-/**
- * Displays previous image but with depth.
- */
 function diffuseSphere() {
-    function rayToColor(ray, world, max_depth){
-        if (max_depth <= 0){
+    function rayToColor(ray, world, maxDepth){
+        if (maxDepth <= 0){
             return new Vec3(0,0,0);
         }
 
-        let rec = world.worldHit(ray, 0.001, Infinity);
-        if (rec.hit){
-            let target = (rec.point).add(rec.normal).add(Vec3.random_in_unit_sphere());
-            return rayToColor(new Ray(rec.point, target.subtract(rec.point)), world, max_depth-1).multiply(0.5)
+        let record = world.worldHit(ray, 0.001, Infinity);
+        if (record.hit){
+            let target = (record.point).add(record.normal).add(Vec3.randomInUnitVector());
+            return rayToColor(new Ray(record.point, target.subtract(record.point)), world, maxDepth-1)
+                .multiply(0.5);
         }
 
-        return gradient(ray);
+        return createGradient(ray);
     }
 
-    displayMetalOrDiffuse(rayToColor, defaultWorld());
+    displayMetalOrDiffuse(rayToColor, createDefaultWorld());
 }
 
-/**
- * Displays the final image.
- */
 function metalSpheres() {
-    function rayToColor(ray, world, max_depth){
-        if (max_depth <= 0){
+    function rayToColor(ray, world, maxDepth){
+        if (maxDepth <= 0){
             return new Vec3(0,0,0);
         }
 
-        let rec = world.worldHit(ray, 0.001, Infinity);
-        if (rec.hit){
-            let s_rec = rec.material.scatter(ray, rec)
-            if (s_rec.isScattered){
-                return rayToColor(s_rec.rayScattered, world, max_depth-1).multiplyByVector(s_rec.attenuation);
+        let record = world.worldHit(ray, 0.001, Infinity);
+        if (record.hit){
+            let scatterRec = record.material.scatter(ray, record);
+            if (scatterRec.isScattered){
+                return rayToColor(scatterRec.rayScattered, world, maxDepth-1)
+                    .multiplyByVector(scatterRec.attenuation);
             }
             return new Vec3(0,0,0);
         }
-        return gradient(ray);
+        return createGradient(ray);
     }
     displayMetal(rayToColor);
 }
@@ -172,7 +159,7 @@ function getDiscriminant(center, radius, ray){
 }
 
 
-function defaultWorld(){
+function createDefaultWorld(){
     let world = new World;
     world.add(new Sphere(new Vec3(0,0,-1), 0.5));
     world.add(new Sphere(new Vec3(0,-100.5,-1), 100));
@@ -180,9 +167,9 @@ function defaultWorld(){
 }
 
 
-function gradient(ray){
-    let unit_direction = ray.direction.unitVector();
-    let t = 0.5*(unit_direction.y + 1.0);
+function createGradient(ray){
+    let unitDirection = ray.direction.unitVector();
+    let t = 0.5*(unitDirection.y + 1.0);
     let color = new Vec3(1.0, 1.0, 1.0);
     let color2 = new Vec3(0.5, 0.7, 1.0);
     let gradient = color.multiply(1.0-t).add(color2.multiply(t));
@@ -192,104 +179,94 @@ function gradient(ray){
 
 function display(rayToColor){
     //Image
-    const aspect_ratio = 16.0 / 9.0;
-    const imageWidth = 400;
-    const imageHeight = (imageWidth / aspect_ratio);
     const image = [];
 
     //Camera
     let camera = new Camera();
 
     //Render
-    for (let j = imageHeight-1; j >= 0; --j) {
-        console.log("Scanlines remaining: " + j);
-        for (let i = 0; i < imageWidth; ++i) {
-            let u = i / (imageWidth-1);
-            let v = j/ (imageHeight-1);
+    for (let j = IMAGE_HEIGHT-1; j >= 0; --j) {
+        //console.log("Scanlines remaining: " + j);
+        for (let i = 0; i < IMAGE_WIDTH; ++i) {
+            let u = i / (IMAGE_WIDTH-1);
+            let v = j/ (IMAGE_HEIGHT-1);
             let ray = camera.getRay(u, v);
 
             image.push(rayToColor(ray).toList());
         }
     }
 
-    displayImage(imageWidth, imageHeight, image);
+    displayImage(IMAGE_WIDTH, IMAGE_HEIGHT, image);
 }
 
 
 function displayWorld(rayToColor){
     //Image
-    const aspect_ratio = 16.0 / 9.0;
-    const imageWidth = 400;
-    const imageHeight = imageWidth / aspect_ratio;
     const image = [];
 
     //Camera
     let camera = new Camera();
 
     //World
-    let world = defaultWorld()
+    let world = createDefaultWorld()
 
     //Render
-    for (let j = imageHeight-1; j >= 0; --j) {
-        console.log("Scanlines remaining: " + j);
-        for (let i = 0; i < imageWidth; ++i) {
-            let u = i / (imageWidth-1);
-            let v = j/ (imageHeight-1);
+    for (let j = IMAGE_HEIGHT-1; j >= 0; --j) {
+        //console.log("Scanlines remaining: " + j);
+        for (let i = 0; i < IMAGE_WIDTH; ++i) {
+            let u = i / (IMAGE_WIDTH-1);
+            let v = j/ (IMAGE_HEIGHT-1);
             let ray = camera.getRay(u, v);
 
             image.push(rayToColor(ray, world).toList());
         }
     }
 
-    displayImage(imageWidth, imageHeight, image);
+    displayImage(IMAGE_WIDTH, IMAGE_HEIGHT, image);
 }
 
 
 function displayWorldAntialiasing(rayToColor){
     //Image
-    const aspect_ratio = 16.0 / 9.0;
-    const imageWidth = 400;
-    const imageHeight = imageWidth / aspect_ratio;
-    const samples_per_pixel = 100;
     const image = [];
 
     //Camera
     let camera = new Camera();
 
     //World
-    let world = defaultWorld()
+    let world = createDefaultWorld()
 
     //Render
-    for (let j = imageHeight-1; j >= 0; --j) {
+    for (let j = IMAGE_HEIGHT-1; j >= 0; --j) {
         //console.log("Scanlines remaining: " + j);
-        for (let i = 0; i < imageWidth; ++i) {
-            let pixel_color = new Vec3(0,0,0);
-            for (let s = 0; s < samples_per_pixel; s++){
-                let u = (i + Math.random()) / (imageWidth-1);
-                let v = (j + Math.random()) / (imageHeight-1);
+        for (let i = 0; i < IMAGE_WIDTH; ++i) {
+            let pixelColor = new Vec3(0,0,0);
+            for (let s = 0; s < SAMPLES_PER_PIXEL; s++){
+                let u = (i + Math.random()) / (IMAGE_WIDTH-1);
+                let v = (j + Math.random()) / (IMAGE_HEIGHT-1);
                 let ray = camera.getRay(u, v);
-                pixel_color = pixel_color.add(rayToColor(ray, world));
+                pixelColor = pixelColor.add(rayToColor(ray, world));
             }
-            pixel_color = pixel_color.multiply(1/samples_per_pixel);
-            image.push(pixel_color.toList());
+            pixelColor = pixelColor.multiply(1/SAMPLES_PER_PIXEL);
+            image.push(pixelColor.toList());
         }
     }
-    displayImage(imageWidth, imageHeight, image);
+    displayImage(IMAGE_WIDTH, IMAGE_HEIGHT, image);
 }
 
 
 function displayMetal(rayToColor) {
     //World
     let world = new World;
-    let material_ground = new Lambertian(new Vec3(0.8,0.8,0.0));
-    let material_center = new Lambertian(new Vec3(0.7,0.3,0.3));
-    let material_left = new Metal(new Vec3(0.8,0.8,0.8), 0.3);
-    let material_right = new Metal(new Vec3(0.8,0.6,0.2), 1.0);
+    let materialGround = new Lambertian(new Vec3(0.8,0.8,0.0));
+    let materialCenter = new Lambertian(new Vec3(0.7,0.3,0.3));
+    let materialLeft = new Metal(new Vec3(0.8,0.8,0.8), 0.3);
+    let materialRight = new Metal(new Vec3(0.8,0.6,0.2), 1.0);
 
-    world.add(new Sphere(new Vec3(0, -100.5, -1), 100, material_ground));
-    world.add(new Sphere(new Vec3(0, 0, -1), 0.5, material_center));
-    world.add(new Sphere(new Vec3(-1, 0, -1), 0.5, material_left));
-    world.add(new Sphere(new Vec3(1, 0, -1), 0.5, material_right));
+    world.add(new Sphere(new Vec3(0, -100.5, -1), 100, materialGround));
+    world.add(new Sphere(new Vec3(0, 0, -1), 0.5, materialCenter));
+    world.add(new Sphere(new Vec3(-1, 0, -1), 0.5, materialLeft));
+    world.add(new Sphere(new Vec3(1, 0, -1), 0.5, materialRight));
 
     displayMetalOrDiffuse(rayToColor, world);
 }
@@ -297,31 +274,25 @@ function displayMetal(rayToColor) {
 
 function displayMetalOrDiffuse(rayToColor, world){
     //Image
-    const aspect_ratio = 16.0 / 9.0;
-    const imageWidth = 400;
-    const imageHeight = imageWidth / aspect_ratio;
-    const samples_per_pixel = 100;
-    const max_depth = 50;
-
     const image = [];
 
     //Camera
     let camera = new Camera();
 
-    for (let j = imageHeight-1; j >= 0; --j) {
+    for (let j = IMAGE_HEIGHT-1; j >= 0; --j) {
         //console.log("Scanlines remaining: " + j);
-        for (let i = 0; i < imageWidth; ++i) {
-            let pixel_color = new Vec3(0,0,0);
-            for (let s = 0; s < samples_per_pixel; s++){
-                let u = (i + Math.random()) / (imageWidth-1);
-                let v = (j + Math.random()) / (imageHeight-1);
+        for (let i = 0; i < IMAGE_WIDTH; ++i) {
+            let pixelColor = new Vec3(0,0,0);
+            for (let s = 0; s < SAMPLES_PER_PIXEL; s++){
+                let u = (i + Math.random()) / (IMAGE_WIDTH-1);
+                let v = (j + Math.random()) / (IMAGE_HEIGHT-1);
                 let ray = camera.getRay(u, v);
-                pixel_color = pixel_color.add(rayToColor(ray, world, max_depth));
+                pixelColor = pixelColor.add(rayToColor(ray, world, MAX_DEPTH));
             }
-            pixel_color = pixel_color.multiply(1/samples_per_pixel);
-            pixel_color = pixel_color.squareRoot();
-            image.push(pixel_color.toList());
+            pixelColor = pixelColor.multiply(1/SAMPLES_PER_PIXEL);
+            pixelColor = pixelColor.squareRoot();
+            image.push(pixelColor.toList());
         }
     }
-    displayImage(imageWidth, imageHeight, image);
+    displayImage(IMAGE_WIDTH, IMAGE_HEIGHT, image);
 }
